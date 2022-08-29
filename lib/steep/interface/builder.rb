@@ -241,8 +241,9 @@ module Steep
             raw_singleton_object_shape_cache
           end
 
-        raw_shape = cache[[type.name, public_only]] ||= begin
-          shape = Interface::Shape.new(type: AST::Builtin.bottom_type, private: !public_only)
+        public_shape, private_shape = cache[type.name] ||= begin
+          public_shape = Interface::Shape.new(type: AST::Builtin.bottom_type, private: false)
+          private_shape = Interface::Shape.new(type: AST::Builtin.bottom_type, private: true)
 
           case type
           when AST::Types::Name::Instance
@@ -254,10 +255,8 @@ module Steep
           end
 
           definition.methods.each do |name, method|
-            next if method.private? && public_only
-
             Steep.logger.tagged "method = #{type}##{name}" do
-              shape.methods[name] = Interface::Shape::Entry.new(
+              entry = Interface::Shape::Entry.new(
                 method_types: method.defs.map do |type_def|
                   method_name = method_name_for(type_def, name)
                   decl = TypeInference::MethodCall::MethodDecl.new(method_name: method_name, method_def: type_def)
@@ -265,12 +264,18 @@ module Steep
                   replace_primitive_method(method_name, type_def, method_type)
                 end
               )
+
+              private_shape.methods[name] = entry
+              unless method.private?
+                public_shape.methods[name] = entry
+              end
             end
           end
 
-          shape
+          [public_shape, private_shape]
         end
 
+        raw_shape = public_only ? public_shape : private_shape
         raw_shape.subst(subst, type: type)
       end
 
