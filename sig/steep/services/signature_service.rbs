@@ -73,13 +73,13 @@ module Steep
 
       def rescue_rbs_error: (untyped errors) { () -> untyped } -> untyped
 
-      def update_builder: (ancestor_builder: untyped, paths: untyped) -> untyped
+      def update_builder: (ancestor_builder: RBS::DefinitionBuilder::AncestorBuilder, paths: Set[Pathname]) -> untyped
 
-      def type_names: (paths: untyped, env: untyped) -> untyped
+      def type_names: (paths: Set[String], env: untyped) -> untyped
 
-      def const_decls: (paths: untyped, env: untyped) -> untyped
+      def const_decls: (paths: Set[String], env: untyped) -> untyped
 
-      def global_decls: (paths: untyped, ?env: untyped) -> untyped
+      def global_decls: (paths: Set[String], ?env: untyped) -> untyped
 
       def type_name_from_decl: (untyped decl, set: untyped) -> untyped
 

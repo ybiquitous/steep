@@ -296,9 +296,11 @@ module Steep
         Steep.measure "#update_builder with #{paths.size} files" do
           changed_names = Set[]
 
+          path_strs = paths.map(&:to_s).to_set
+
           old_definition_builder = latest_builder
           old_env = old_definition_builder.env
-          old_names = type_names(paths: paths, env: old_env)
+          old_names = type_names(paths: path_strs, env: old_env)
           old_ancestor_builder = old_definition_builder.ancestor_builder
           old_graph = RBS::AncestorGraph.new(env: old_env, ancestor_builder: old_ancestor_builder)
           add_descendants(graph: old_graph, names: old_names, set: changed_names)
@@ -306,7 +308,7 @@ module Steep
 
           new_env = ancestor_builder.env
           new_ancestor_builder = ancestor_builder
-          new_names = type_names(paths: paths, env: new_env)
+          new_names = type_names(paths: path_strs, env: new_env)
           new_graph = RBS::AncestorGraph.new(env: new_env, ancestor_builder: new_ancestor_builder)
           add_descendants(graph: new_graph, names: new_names, set: changed_names)
           add_nested_decls(env: new_env, names: new_names, set: changed_names)
@@ -322,7 +324,7 @@ module Steep
       def type_names(paths:, env:)
         env.declarations.each.with_object(Set[]) do |decl, set|
           if decl.location
-            if paths.include?(Pathname(decl.location.buffer.name))
+            if paths.include?(decl.location.buffer.name)
               type_name_from_decl(decl, set: set)
             end
           end
@@ -332,7 +334,7 @@ module Steep
       def const_decls(paths:, env:)
         env.constant_decls.filter do |_, entry|
           if location = entry.decl.location
-            paths.include?(Pathname(location.buffer.name))
+            paths.include?(location.buffer.name)
           end
         end
       end
@@ -340,7 +342,7 @@ module Steep
       def global_decls(paths:, env: latest_env)
         env.global_decls.filter do |_, entry|
           if location = entry.decl.location
-            paths.include?(Pathname(location.buffer.name))
+            paths.include?(location.buffer.name)
           end
         end
       end
