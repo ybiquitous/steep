@@ -65,19 +65,19 @@ module Steep
       Proc = Type.new("::Proc")
 
       def self.nil_type
-        AST::Types::Nil.new
+        @nil_type ||= AST::Types::Nil.new
       end
 
       def self.any_type
-        AST::Types::Any.new
+        @any_type ||= AST::Types::Any.new
       end
 
       def self.bool_type
-        AST::Types::Boolean.new
+        @bool_type ||= AST::Types::Boolean.new
       end
 
       def self.bottom_type
-        AST::Types::Bot.new
+        @bot_type ||= AST::Types::Bot.new
       end
 
       def self.top_type
