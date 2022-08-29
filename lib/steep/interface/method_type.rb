@@ -4,13 +4,24 @@ module Steep
       attr_reader :type_params
       attr_reader :type
       attr_reader :block
-      attr_reader :method_decls
 
       def initialize(type_params:, type:, block:, method_decls:)
         @type_params = type_params
         @type = type
         @block = block
         @method_decls = method_decls
+      end
+
+      def method_decls
+        @mds ||=
+          case @method_decls
+          when Set
+            @method_decls
+          when Enumerable
+            Set.new(@method_decls)
+          else
+            Set[@method_decls]
+          end
       end
 
       def ==(other)

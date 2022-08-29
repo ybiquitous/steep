@@ -7,9 +7,11 @@ module Steep
 
       attr_reader block: Block?
 
-      attr_reader method_decls: Set[TypeInference::MethodCall::MethodDecl]
+      attr_reader method_decls (): Set[TypeInference::MethodCall::MethodDecl]
 
-      def initialize: (type_params: Array[TypeParam], type: Function, block: Block?, method_decls: Set[TypeInference::MethodCall::MethodDecl]) -> void
+      @method_decls: Enumerable[TypeInference::MethodCall::MethodDecl] | TypeInference::MethodCall::MethodDecl
+
+      def initialize: (type_params: Array[TypeParam], type: Function, block: Block?, method_decls: Enumerable[TypeInference::MethodCall::MethodDecl] | TypeInference::MethodCall::MethodDecl) -> void
 
       def ==: (untyped other) -> bool
 

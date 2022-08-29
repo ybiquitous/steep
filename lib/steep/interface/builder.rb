@@ -260,7 +260,7 @@ module Steep
                 method_types: method.defs.map do |type_def|
                   method_name = method_name_for(type_def, name)
                   decl = TypeInference::MethodCall::MethodDecl.new(method_name: method_name, method_def: type_def)
-                  method_type = factory.method_type(type_def.type, method_decls: Set[decl])
+                  method_type = factory.method_type(type_def.type, method_decls: decl)
                   replace_primitive_method(method_name, type_def, method_type)
                 end
               )
