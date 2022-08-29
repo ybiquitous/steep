@@ -3129,66 +3129,52 @@ module Steep
     def type_method_call(node, method_name:, receiver_type:, method:, arguments:, block_params:, block_body:, topdown_hint:)
       node_range = node.loc.expression.yield_self {|l| l.begin_pos..l.end_pos }
 
-      results = method.method_types.map do |method_type|
-        Steep.logger.tagged method_type.to_s do
-          typing.new_child(node_range) do |child_typing|
-            constr = self.with_new_typing(child_typing)
+      fails = []
 
-            constr.try_special_method(
-              node,
-              receiver_type: receiver_type,
-              method_name: method_name,
-              method_type: method_type,
-              arguments: arguments,
-              block_params: block_params,
-              block_body: block_body
-            ) || constr.try_method_type(
-              node,
-              receiver_type: receiver_type,
-              method_name: method_name,
-              method_type: method_type,
-              arguments: arguments,
-              block_params: block_params,
-              block_body: block_body,
-              topdown_hint: topdown_hint
-            )
+      method.method_types.each do |method_type|
+        call, constr =
+          Steep.logger.tagged method_type.to_s do
+            typing.new_child(node_range) do |child_typing|
+              constr = self.with_new_typing(child_typing)
+
+              constr.try_special_method(
+                node,
+                receiver_type: receiver_type,
+                method_name: method_name,
+                method_type: method_type,
+                arguments: arguments,
+                block_params: block_params,
+                block_body: block_body
+              ) || constr.try_method_type(
+                node,
+                receiver_type: receiver_type,
+                method_name: method_name,
+                method_type: method_type,
+                arguments: arguments,
+                block_params: block_params,
+                block_body: block_body,
+                topdown_hint: topdown_hint
+              )
+            end
           end
-        end
-      end
 
-      case
-      when results.empty?
-        method_type = method.method_types.last
-        all_decls = method.method_types.each.with_object(Set[]) do |method_type, set|
-          set.merge(method_type.method_decls)
-        end
-
-        error = Diagnostic::Ruby::IncompatibleArguments.new(node: node, method_name: method_name, receiver_type: receiver_type, method_types: method.method_types)
-        call = TypeInference::MethodCall::Error.new(
-          node: node,
-          context: context.method_context,
-          method_name: method_name,
-          receiver_type: receiver_type,
-          return_type: method_type.type.return_type,
-          errors: [error],
-          method_decls: all_decls
-        )
-        constr = self.with_new_typing(typing.new_child(node_range))
-      when (call, constr = results.find {|call, _| call.is_a?(TypeInference::MethodCall::Typed) })
-        # Nop
-      else
-        if results.one?
-          call, constr = results[0]
+        if call.is_a?(TypeInference::MethodCall::Typed)
+          # ok
+          constr.typing.save!
+          return [call, update_type_env { constr.context.type_env }]
         else
-          return
+          fails << [call, constr]
         end
       end
-      constr.typing.save!
 
-      [
-        call,
-        update_type_env { constr.context.type_env }
-      ]
+      if fails.size == 1
+        call, constr = fails[0]
+        constr.typing.save!
+        [
+          call,
+          update_type_env { constr.context.type_env }
+        ]
+      end
     end
 
     def inspect
