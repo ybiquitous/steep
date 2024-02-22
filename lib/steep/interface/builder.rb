@@ -249,7 +249,10 @@ module Steep
             record_shape(type, public_only, config)
           when AST::Types::Literal
             if shape = shape(type.back_type, public_only: public_only, config: config.update(resolve_self: false))
-              shape.subst(Substitution.build([], [], self_type: type), type: type)
+              shape.subst(
+                Substitution.build([], [], self_type: config.resolve_self ? type : nil),
+                type: type
+              )
             end
           when AST::Types::Boolean, AST::Types::Logic::Base
             shape = union_shape(
@@ -384,39 +387,88 @@ module Steep
       end
 
       def union_shape(shape_type, shapes, public_only)
-        shapes.inject do |shape1, shape2|
-          Interface::Shape.new(type: shape_type, private: !public_only).tap do |shape|
-            common_methods = Set.new(shape1.methods.each_name) & Set.new(shape2.methods.each_name)
-            common_methods.each do |name|
-              Steep.logger.tagged(name.to_s) do
-                types1 = shape1.methods[name]&.method_types or raise
-                types2 = shape2.methods[name]&.method_types or raise
+        s0, *sx = shapes
+        s0 or raise
+        all_common_methods = Set.new(s0.methods.each_name)
+        sx.each do |shape|
+          all_common_methods &= shape.methods.each_name
+        end
 
-                if types1 == types2 && types1.map {|type| type.method_decls.to_a }.to_set == types2.map {|type| type.method_decls.to_a }.to_set
-                  shape.methods[name] = (shape1.methods[name] or raise)
+        shape = Interface::Shape.new(type: shape_type, private: !public_only)
+        all_common_methods.each do |method_name|
+          methods = shapes.map {|shape| shape.methods[method_name] || raise }
+
+          method_types = methods.inject do |m1, m2|
+            # @type break: nil
+
+            types1 = m1.method_types
+            types2 = m2.method_types
+
+            if types1 == types2
+              if types1.map {|type| type.method_decls.to_a }.to_set == types2.map {|type| type.method_decls.to_a }.to_set
+                next m1
+              end
+            end
+
+            method_types = {} #: Hash[MethodType, true]
+
+            types1.each do |type1|
+              types2.each do |type2|
+                if type1 == type2
+                  method_types[type1.with(method_decls: type1.method_decls + type2.method_decls)] = true
                 else
-                  method_types = {} #: Hash[MethodType, true]
-
-                  types1.each do |type1|
-                    types2.each do |type2|
-                      if type1 == type2
-                        method_types[type1.with(method_decls: type1.method_decls + type2.method_decls)] = true
-                      else
-                        if type = MethodType.union(type1, type2, subtyping)
-                          method_types[type] = true
-                        end
-                      end
-                    end
-                  end
-
-                  unless method_types.empty?
-                    shape.methods[name] = Interface::Shape::Entry.new(method_types: method_types.keys)
+                  if type = MethodType.union(type1, type2, subtyping)
+                    method_types[type] = true
                   end
                 end
               end
             end
+
+            break nil if method_types.empty?
+
+            Interface::Shape::Entry.new(method_types: method_types.keys)
+          end
+
+          if method_types
+            shape.methods[method_name] = method_types
           end
         end
+
+        shape
+
+        # shapes.inject do |shape1, shape2|
+        #   Interface::Shape.new(type: shape_type, private: !public_only).tap do |shape|
+        #     common_methods = Set.new(shape1.methods.each_name) & Set.new(shape2.methods.each_name)
+        #     common_methods.each do |name|
+        #       Steep.logger.tagged(name.to_s) do
+        #         types1 = shape1.methods[name]&.method_types or raise
+        #         types2 = shape2.methods[name]&.method_types or raise
+
+        #         if types1 == types2 && types1.map {|type| type.method_decls.to_a }.to_set == types2.map {|type| type.method_decls.to_a }.to_set
+        #           shape.methods[name] = (shape1.methods[name] or raise)
+        #         else
+        #           method_types = {} #: Hash[MethodType, true]
+
+        #           types1.each do |type1|
+        #             types2.each do |type2|
+        #               if type1 == type2
+        #                 method_types[type1.with(method_decls: type1.method_decls + type2.method_decls)] = true
+        #               else
+        #                 if type = MethodType.union(type1, type2, subtyping)
+        #                   method_types[type] = true
+        #                 end
+        #               end
+        #             end
+        #           end
+
+        #           unless method_types.empty?
+        #             shape.methods[name] = Interface::Shape::Entry.new(method_types: method_types.keys)
+        #           end
+        #         end
+        #       end
+        #     end
+          # end
+        # end
       end
 
       def intersection_shape(type, shapes, public_only)
