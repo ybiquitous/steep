@@ -191,7 +191,7 @@ module Steep
                   Substitution.build(
                     [self_var.name, class_var.name, instance_var.name],
                     [AST::Types::Self.instance, AST::Types::Class.instance, AST::Types::Instance.instance],
-                    self_type: type,
+                    self_type: config.resolve_self ? type : nil,
                     instance_type: AST::Builtin.any_type,
                     module_type: AST::Builtin.any_type
                   ),
@@ -209,7 +209,7 @@ module Steep
                 shape.subst(
                   Substitution.build(
                     [], [],
-                    self_type: type,
+                    self_type: config.resolve_self ? type : nil,
                     instance_type: AST::Builtin.any_type,
                     module_type: AST::Builtin.any_type
                   )
@@ -235,7 +235,7 @@ module Steep
                 Substitution.build(
                   [self_var.name, class_var.name, instance_var.name],
                   [AST::Types::Self.instance, AST::Types::Class.instance, AST::Types::Instance.instance],
-                  self_type: type,
+                  self_type: config.resolve_self ? type : nil,
                   instance_type: AST::Builtin.any_type,
                   module_type: AST::Builtin.any_type
                 ),
@@ -265,12 +265,12 @@ module Steep
             )
 
             if shape
-              shape.subst(Substitution.build([], [], self_type: type))
+              shape.subst(Substitution.build([], [], self_type: config.resolve_self ? type : nil))
             end
           when AST::Types::Nil
             if shape = object_shape(AST::Builtin::NilClass.instance_type, public_only, true, !config.resolve_instance, !config.resolve_class)
               if config.resolve_self
-                shape.subst(Substitution.build([], [], self_type: type), type: type)
+                shape.subst(Substitution.build([], [], self_type: config.resolve_self ? type : nil), type: type)
               else
                 shape.update(type: type)
               end
@@ -435,40 +435,6 @@ module Steep
         end
 
         shape
-
-        # shapes.inject do |shape1, shape2|
-        #   Interface::Shape.new(type: shape_type, private: !public_only).tap do |shape|
-        #     common_methods = Set.new(shape1.methods.each_name) & Set.new(shape2.methods.each_name)
-        #     common_methods.each do |name|
-        #       Steep.logger.tagged(name.to_s) do
-        #         types1 = shape1.methods[name]&.method_types or raise
-        #         types2 = shape2.methods[name]&.method_types or raise
-
-        #         if types1 == types2 && types1.map {|type| type.method_decls.to_a }.to_set == types2.map {|type| type.method_decls.to_a }.to_set
-        #           shape.methods[name] = (shape1.methods[name] or raise)
-        #         else
-        #           method_types = {} #: Hash[MethodType, true]
-
-        #           types1.each do |type1|
-        #             types2.each do |type2|
-        #               if type1 == type2
-        #                 method_types[type1.with(method_decls: type1.method_decls + type2.method_decls)] = true
-        #               else
-        #                 if type = MethodType.union(type1, type2, subtyping)
-        #                   method_types[type] = true
-        #                 end
-        #               end
-        #             end
-        #           end
-
-        #           unless method_types.empty?
-        #             shape.methods[name] = Interface::Shape::Entry.new(method_types: method_types.keys)
-        #           end
-        #         end
-        #       end
-        #     end
-          # end
-        # end
       end
 
       def intersection_shape(type, shapes, public_only)
