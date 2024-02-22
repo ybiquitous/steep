@@ -9,10 +9,26 @@ module Steep
         def to_s: () -> String
       end
 
+      class UnionEntry
+        attr_reader entries: Array[Entry]
+
+        attr_reader subtyping: Subtyping::Check
+
+        def initialize: (entries: Array[Entry], subtyping: Subtyping::Check) -> void
+
+        def to_s: () -> String
+
+        def resolve: () -> Entry?
+      end
+
       class Methods
-        def []=: (Symbol, Entry) -> Entry
+        type entry = Entry | UnionEntry
+
+        def []=: (Symbol, entry) -> entry
 
         def []: (Symbol) -> Entry?
+
+        def fetch: (Symbol) -> Entry
 
         def key?: (Symbol) -> bool
 
@@ -26,10 +42,10 @@ module Steep
 
         attr_reader substs: Array[Substitution]
 
-        attr_reader methods: Hash[Symbol, Entry]
+        attr_reader methods: Hash[Symbol, entry]
         attr_reader resolved_methods: Hash[Symbol, Entry?]
 
-        def initialize: (substs: Array[Substitution], methods: Hash[Symbol, Entry]) -> void
+        def initialize: (substs: Array[Substitution], methods: Hash[Symbol, entry]) -> void
 
         @subst: Substitution?
         def subst: () -> Substitution
@@ -37,8 +53,6 @@ module Steep
         def push_substitution: (Substitution) -> Methods
 
         def merge!: (Methods other) -> void
-
-        # def +: (Methods other) -> Methods
       end
 
       attr_reader type: AST::Types::t

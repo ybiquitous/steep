@@ -398,42 +398,8 @@ module Steep
 
         shape = Interface::Shape.new(type: shape_type, private: !public_only)
         all_common_methods.each do |method_name|
-          methods = shapes.map {|shape| shape.methods[method_name] || raise }
-
-          method_types = methods.inject do |m1, m2|
-            # @type break: nil
-
-            types1 = m1.method_types
-            types2 = m2.method_types
-
-            if types1 == types2
-              if types1.map {|type| type.method_decls.to_a }.to_set == types2.map {|type| type.method_decls.to_a }.to_set
-                next m1
-              end
-            end
-
-            method_types = {} #: Hash[MethodType, true]
-
-            types1.each do |type1|
-              types2.each do |type2|
-                if type1 == type2
-                  method_types[type1.with(method_decls: type1.method_decls + type2.method_decls)] = true
-                else
-                  if type = MethodType.union(type1, type2, subtyping)
-                    method_types[type] = true
-                  end
-                end
-              end
-            end
-
-            break nil if method_types.empty?
-
-            Interface::Shape::Entry.new(method_types: method_types.keys)
-          end
-
-          if method_types
-            shape.methods[method_name] = method_types
-          end
+          entries = shapes.map {|shape| shape.methods.fetch(method_name) }
+          shape.methods[method_name] = Interface::Shape::UnionEntry.new(entries: entries, subtyping: subtyping)
         end
 
         shape
