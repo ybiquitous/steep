@@ -36,8 +36,6 @@ module Steep
 
         attr_reader variable_bounds: Hash[Symbol, AST::Types::t?]
 
-        @no_resolve: Config
-
         def initialize: (
           self_type: AST::Types::t,
           class_type: AST::Types::t | nil,
@@ -59,6 +57,7 @@ module Steep
         ) -> self
 
         @no_resolve: self?
+        
         def no_resolve: () -> self
 
         def resolve?: () -> bool

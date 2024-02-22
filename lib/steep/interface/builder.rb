@@ -29,7 +29,9 @@ module Steep
 
         def no_resolve
           if resolve?
+            # steep:ignore:start
             @no_resolve ||= update(resolve_self: false, resolve_class: false, resolve_instance: false)
+            # steep:ignore:end
           else
             self
           end
