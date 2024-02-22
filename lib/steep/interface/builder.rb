@@ -191,7 +191,7 @@ module Steep
                   Substitution.build(
                     [self_var.name, class_var.name, instance_var.name],
                     [AST::Types::Self.instance, AST::Types::Class.instance, AST::Types::Instance.instance],
-                    self_type: config.resolve_self ? type : nil,
+                    self_type: config.resolve_self ? type : AST::Types::Self.instance,
                     instance_type: AST::Builtin.any_type,
                     module_type: AST::Builtin.any_type
                   ),
@@ -209,7 +209,7 @@ module Steep
                 shape.subst(
                   Substitution.build(
                     [], [],
-                    self_type: config.resolve_self ? type : nil,
+                    self_type: config.resolve_self ? type : AST::Types::Self.instance,
                     instance_type: AST::Builtin.any_type,
                     module_type: AST::Builtin.any_type
                   )
@@ -235,7 +235,7 @@ module Steep
                 Substitution.build(
                   [self_var.name, class_var.name, instance_var.name],
                   [AST::Types::Self.instance, AST::Types::Class.instance, AST::Types::Instance.instance],
-                  self_type: config.resolve_self ? type : nil,
+                  self_type: config.resolve_self ? type : AST::Types::Self.instance,
                   instance_type: AST::Builtin.any_type,
                   module_type: AST::Builtin.any_type
                 ),
@@ -250,7 +250,7 @@ module Steep
           when AST::Types::Literal
             if shape = shape(type.back_type, public_only: public_only, config: config.update(resolve_self: false))
               shape.subst(
-                Substitution.build([], [], self_type: config.resolve_self ? type : nil),
+                Substitution.build([], [], self_type: config.resolve_self ? type : AST::Types::Self.instance),
                 type: type
               )
             end
@@ -265,12 +265,12 @@ module Steep
             )
 
             if shape
-              shape.subst(Substitution.build([], [], self_type: config.resolve_self ? type : nil))
+              shape.subst(Substitution.build([], [], self_type: config.resolve_self ? type : AST::Types::Self.instance))
             end
           when AST::Types::Nil
             if shape = object_shape(AST::Builtin::NilClass.instance_type, public_only, true, !config.resolve_instance, !config.resolve_class)
               if config.resolve_self
-                shape.subst(Substitution.build([], [], self_type: config.resolve_self ? type : nil), type: type)
+                shape.subst(Substitution.build([], [], self_type: config.resolve_self ? type : AST::Types::Self.instance), type: type)
               else
                 shape.update(type: type)
               end
