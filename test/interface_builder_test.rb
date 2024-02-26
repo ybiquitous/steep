@@ -129,8 +129,6 @@ end
     with_factory({ "a.rbs" => <<-RBS }) do
 class Foo[A, B, C]
   def itself: () -> [A, B, C]
-
-  def foo: () -> [self, instance, class]
 end
       RBS
       builder = Interface::Builder.new(factory)
@@ -151,9 +149,9 @@ end
       assert_equal parse_type("::Foo[::String, singleton(::String), ::String]?"), shape.type
       assert_equal(
         [
-          parse_method_type("() -> ([self, class, instance] | ::Foo[self, class, instance] | nil)"),
+          parse_method_type("() -> ([::String, singleton(::String), ::String] | nil)"),
         ],
-        shape.methods[:itself].method_types
+        shape.methods[:itself].method_types.join(" || ")
       )
     end
   end

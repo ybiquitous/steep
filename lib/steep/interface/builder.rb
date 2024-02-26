@@ -201,7 +201,7 @@ module Steep
                 )
               end
             else
-              config_ = config.update(resolve_self: false)
+              config_ = config.update(resolve_self: false, resolve_class: false, resolve_instance: false)
 
               shapes = type.types.map do |type|
                 shape(type, public_only: public_only, config: config_) or return
@@ -317,6 +317,8 @@ module Steep
           )
         end
 
+        pp subst.to_s
+
         raw_object_shape(type, public_only, subst)
       end
 
@@ -398,7 +400,15 @@ module Steep
 
         shape = Interface::Shape.new(type: shape_type, private: !public_only)
         all_common_methods.each do |method_name|
-          entries = shapes.map {|shape| shape.methods.fetch(method_name) }
+          entries = shapes.map {|shape| shape.methods.methods.fetch(method_name) }
+          entries = entries.flat_map do |entry|
+            case entry
+            when Shape::Entry
+              [entry]
+            else
+              entry.entries
+            end
+          end
           shape.methods[method_name] = Interface::Shape::UnionEntry.new(entries: entries, subtyping: subtyping)
         end
 

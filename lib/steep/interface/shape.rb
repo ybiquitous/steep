@@ -22,15 +22,11 @@ module Steep
         end
 
         def to_s
-          "UnionEntry(" + entries.map(&:to_s.join(" | ") + ")"
+          "UnionEntry(" + entries.join(" | ") + ")"
         end
 
         def resolve
-          methods = shapes.map {|shape| shape.methods[method_name] || raise }
-
-          method_types = methods.inject do |m1, m2|
-            # @type break: nil
-
+          entries.inject do |m1, m2|
             types1 = m1.method_types
             types2 = m2.method_types
 
@@ -54,44 +50,11 @@ module Steep
               end
             end
 
-            break nil if method_types.empty?
+            return if method_types.empty?
 
             Interface::Shape::Entry.new(method_types: method_types.keys)
           end
         end
-
-      #   def resolve
-      #     # @type var method_types: Hash[MethodType, true]
-      #     method_types = {}
-
-      #     entries.each do |entry1, entry2|
-      #       types1 = entry1.method_types
-      #       types2 = entry2.method_types
-
-      #       if types1 == types2
-      #         if types1.map {|type| type.method_decls.to_a }.to_set == types2.map {|type| type.method_decls.to_a }.to_set
-      #           next m1
-      #         end
-      #       end
-
-      #       types1.each do |type1|
-      #         types2.each do |type2|
-      #           if type1 == type2
-      #             method_types[type1.with(method_decls: type1.method_decls + type2.method_decls)] = true
-      #           else
-      #             if type = MethodType.union(type1, type2, subtyping)
-      #               method_types[type] = true
-      #             end
-      #           end
-      #         end
-      #       end
-
-      #       return if method_types.empty?
-      #     end
-
-      #     Interface::Shape::Entry.new(method_types: method_types.keys)
-      #   end
-      # end
       end
 
       class Methods
@@ -102,25 +65,35 @@ module Steep
         def initialize(substs:, methods:)
           @substs = substs
           @methods = methods
-          @resolved_methods = methods.transform_values { nil }
+          @resolved_methods = {}
         end
 
         def key?(name)
-          methods.key?(name)
+          case methods.fetch(name, nil)
+          when UnionEntry
+            self[name] ? true : false
+          when Entry
+            true
+          else
+            false
+          end
         end
 
         def []=(name, entry)
-          resolved_methods[name] = nil
+          resolved_methods.delete(name)
           methods[name] = entry
         end
 
         def [](name)
-          return nil unless key?(name)
+          return nil unless methods.key?(name)
+
           resolved_methods.fetch(name) do
             entry = methods.fetch(name)
 
             if entry.is_a?(UnionEntry)
               entry = entry.resolve
+            else
+              1+2
             end
 
             resolved_methods[name] =
@@ -153,7 +126,11 @@ module Steep
 
         def each_name(&block)
           if block
-            methods.each_key(&block)
+            methods.each_key do |key|
+              if key?(key)
+                yield key
+              end
+            end
           else
             enum_for :each_name
           end
