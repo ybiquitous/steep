@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require "memory_profiler"
+
+def exit(*)
+
+end
+
+MemoryProfiler.report{
+  load File.join(__dir__, "../exe/steep")
+}.pretty_print(STDERR)

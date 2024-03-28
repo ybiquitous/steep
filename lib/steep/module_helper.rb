@@ -2,7 +2,7 @@ module Steep
   module ModuleHelper
     def module_name_from_node(parent_node, constant_name)
       if namespace = namespace_from_node(parent_node)
-        RBS::TypeName.new(name: constant_name, namespace: namespace)
+        TypeName(namespace.to_s + constant_name.to_s)
       end
     end
 

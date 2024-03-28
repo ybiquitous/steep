@@ -124,7 +124,7 @@ module Steep
 
           map.instance_eval do
             @map.each_key do |name|
-              relative_name = RBS::TypeName.new(name: name, namespace: RBS::Namespace.empty)
+              relative_name = RBS::TypeName(name.to_s)
               if absolute_name = resolve?(relative_name)
                 if env.type_name?(absolute_name)
                   # Yields only if the relative type name resolves to existing absolute type name
@@ -148,7 +148,7 @@ module Steep
           module_namespace = module_name.to_namespace
 
           children.each do |normalized_child_name|
-            child_name = RBS::TypeName.new(namespace: module_namespace, name: normalized_child_name.name)
+            child_name = TypeName(module_namespace.to_s + normalized_child_name.name.to_s)
 
             yield child_name
 
@@ -169,7 +169,7 @@ module Steep
           nil
         else
           if resolved_parent = resolve_used_name(name.namespace.to_type_name)
-            resolved_name = RBS::TypeName.new(namespace: resolved_parent.to_namespace, name: name.name)
+            resolved_name = TypeName(resolved_parent.to_namespace.to_s + name.name.to_s)
             if env.normalize_type_name?(resolved_name)
               resolved_name
             end
@@ -185,15 +185,12 @@ module Steep
         name.absolute? or raise
         normalized_name = env.normalize_type_name?(name) or raise "Cannot normalize given type name `#{name}`"
 
-        name.namespace.path.reverse_each.inject(RBS::TypeName.new(namespace: RBS::Namespace.empty, name: name.name)) do |relative_name, component|
+        name.namespace.path.reverse_each.inject(TypeName(name.name.to_s)) do |relative_name, component|
           if type_name_resolver.resolve(relative_name, context: context) == name
             return [normalized_name, relative_name]
           end
 
-          RBS::TypeName.new(
-            namespace: RBS::Namespace.new(path: [component, *relative_name.namespace.path], absolute: false),
-            name: name.name
-          )
+          TypeName([component, *relative_name.namespace.path].join("::") + "::" + name.name.to_s)
         end
 
         if type_name_resolver.resolve(name.relative!, context: context) == name && !resolve_used_name(name.relative!)

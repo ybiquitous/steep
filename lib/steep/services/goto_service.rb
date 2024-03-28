@@ -130,7 +130,7 @@ module Steep
           when AST::Types::Literal
             yield type.back_type.name
           when AST::Types::Nil
-            yield RBS::TypeName.new(name: :NilClass, namespace: RBS::Namespace.root)
+            yield RBS::TypeName("::NilClass")
           when AST::Types::Boolean
             yield RBS::BuiltinNames::TrueClass.name
             yield RBS::BuiltinNames::FalseClass.name

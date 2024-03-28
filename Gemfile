@@ -9,6 +9,10 @@ gem "minitest-hooks"
 group :stackprof, optional: true do
   gem "stackprof"
 end
+group :memory_profiler, optional: true do
+  gem "memory_profiler"
+end
 gem 'minitest-slow_test'
 
 gem "debug", require: false, platform: :mri
+gem "rbs", path: "../rbs"
